@@ -2,96 +2,134 @@ package jm.task.core.jdbc.dao;
 
 import jm.task.core.jdbc.model.User;
 import jm.task.core.jdbc.util.Util;
+import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 /*
-Rollback сделал везде, кроме getAllUsers - полагаю, что там откатывать нечего будет, если возникнет ошибка.
-
+Я переделал как эти ребята делают: https://examples.javacodegeeks.com/java-development/enterprise-java/hibernate/hibernate-transaction-example/
+Но на Jboss ловят просто Exception https://docs.jboss.org/hibernate/orm/5.0/javadocs/org/hibernate/Session.html
  */
 
 import java.util.List;
 
 public class UserDaoHibernateImpl implements UserDao {
+
+    private SessionFactory sessionFactory = Util.getSessionFactory();
     public UserDaoHibernateImpl() {
     }
 
     @Override
     public void createUsersTable() {
-        try (Session session = Util.getSessionFactory().getCurrentSession()) {
-            try {
-                session.beginTransaction();
-                session.createSQLQuery("CREATE TABLE IF NOT EXISTS users (" +
-                        "id int PRIMARY KEY AUTO_INCREMENT," +
-                        "name VARCHAR(50) NOT NULL, lastname VARCHAR(50) NOT NULL, age TINYINT NOT NULL);").executeUpdate();
-                session.getTransaction().commit();
-            } catch (Exception ex) {
-                session.getTransaction().rollback();
+        Session session = null;
+        Transaction tx = null;
+        try {
+            session = Util.getSessionFactory().openSession();
+            tx = session.beginTransaction();
+            session.createSQLQuery("CREATE TABLE IF NOT EXISTS users (" +
+                    "id int PRIMARY KEY AUTO_INCREMENT," +
+                    "name VARCHAR(50) NOT NULL, lastname VARCHAR(50) NOT NULL, age TINYINT NOT NULL);").executeUpdate();
+            tx.commit();
+        } catch (HibernateException ex) {
+            if (tx != null) {
+                tx.rollback();
             }
+            ex.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 
     @Override
     public void dropUsersTable() {
-        try (Session session = Util.getSessionFactory().openSession()) {
-            try {
-            session.beginTransaction();
+        Session session = null;
+        Transaction tx = null;
+        try {
+            session = Util.getSessionFactory().openSession();
+            tx = session.beginTransaction();
             session.createSQLQuery("DROP TABLE IF EXISTS users").executeUpdate();
-            session.getTransaction().commit();
-            } catch (Exception ex) {
-                session.getTransaction().rollback();
+            tx.commit();
+        } catch (HibernateException ex) {
+            if (tx != null) {
+                tx.rollback();
             }
+            ex.printStackTrace();
+        } finally {
+            session.close();
         }
-
     }
 
     @Override
     public void saveUser(String name, String lastName, byte age) {
-        try (Session session = Util.getSessionFactory().openSession()) {
-            try {
-                session.beginTransaction();
-                session.save(new User(name, lastName, age));
-                session.getTransaction().commit();
-            } catch (Exception ex) {
-                session.getTransaction().rollback();
+        Session session = null;
+        Transaction tx = null;
+        try {
+            session = Util.getSessionFactory().openSession();
+            tx = session.beginTransaction();
+            session.save(new User(name, lastName, age));
+            tx.commit();
+        } catch (HibernateException ex) {
+            if (tx != null) {
+                tx.rollback();
             }
+            ex.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 
     @Override
     public void removeUserById(long id) {
-        try (Session session = Util.getSessionFactory().openSession()) {
-            try {
-                session.beginTransaction();
-                session.delete(session.get(User.class, id));
-                session.getTransaction().commit();
-            } catch (Exception ex) {
-                session.getTransaction().rollback();
+        Session session = null;
+        Transaction tx = null;
+        try {
+            session = Util.getSessionFactory().openSession();
+            tx = session.beginTransaction();
+            session.delete(session.get(User.class, id));
+            tx.commit();
+        } catch (HibernateException ex) {
+            if (tx != null) {
+                tx.rollback();
             }
+            ex.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 
     @Override
     public List<User> getAllUsers() {
         List<User> users;
-        try (Session session = Util.getSessionFactory().openSession()) {
-            session.beginTransaction();
+        Session session = null;
+        Transaction tx = null;
+        try {
+            session = Util.getSessionFactory().openSession();
+            tx = session.beginTransaction();
             users = session.createQuery("from User").getResultList();
-            session.getTransaction().commit();
+            tx.commit();
+        } finally {
+            session.close();
         }
         return users;
     }
 
     @Override
     public void cleanUsersTable() {
-        try (Session session = Util.getSessionFactory().openSession()) {
-            try {
-                session.beginTransaction();
-                session.createQuery("delete from User").executeUpdate();
-                session.getTransaction().commit();
-            } catch (Exception ex) {
-                session.getTransaction().rollback();
+        Session session = null;
+        Transaction tx = null;
+        try {
+            session = Util.getSessionFactory().openSession();
+            tx = session.beginTransaction();
+            session.createQuery("delete from User").executeUpdate();
+            tx.commit();
+        } catch (HibernateException ex) {
+            if (tx != null) {
+                tx.rollback();
             }
+            ex.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 }
